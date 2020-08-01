@@ -1,15 +1,14 @@
 use crate::components::*;
-use crate::entities::Board;
+use crate::constants::TILE_SIZE;
 use crate::resources::*;
-use ggez::Context;
-use specs::{Entities, Join, Read, ReadStorage, System, Write, WriteStorage};
+use specs::{Entities, Join, ReadExpect, ReadStorage, System, Write, WriteStorage};
 
 pub struct InputSystem;
 
 impl<'a> System<'a> for InputSystem {
     type SystemData = (
         Entities<'a>,
-        Read<'a, Board>,
+        ReadExpect<'a, GameState>,
         Write<'a, InputQueue>,
         ReadStorage<'a, Slot>,
         WriteStorage<'a, Selected>,
@@ -17,27 +16,29 @@ impl<'a> System<'a> for InputSystem {
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (entities, board, mut input_queue, slots, mut selected, mut highlighted) = data;
+        let (entities, game_state, mut input_queue, slots, mut selected, mut highlighted) = data;
 
-        let (entity, slot, is_highlighted) =
+        let (entity, slot, _is_highlighted) =
             (&*entities, &slots, &highlighted).join().nth(0).unwrap();
 
         let event = input_queue.events.pop_front();
         match event {
             Some(InputEvent::MouseClick { x, y }) => {
                 for (e, s) in (&*entities, &slots).join() {
-                    let sx = s.x as f32 * 128.0;
-                    let sy = s.y as f32 * 128.0;
+                    let sx = s.x as f32 * TILE_SIZE;
+                    let sy = s.y as f32 * TILE_SIZE;
 
-                    if x >= sx && x <= sx + 128.0 {
-                        if y >= sy && y <= sy + 128.0 {
+                    if x >= sx && x <= sx + TILE_SIZE {
+                        if y >= sy && y <= sy + TILE_SIZE {
                             if let Some(en) =
                                 (&*entities, &selected).join().map(|(en, _)| en).nth(0)
                             {
                                 selected.remove(en);
                             }
 
-                            selected.insert(e, Selected);
+                            selected
+                                .insert(e, Selected)
+                                .expect("failed to mark entity as selected");
 
                             return;
                         }
@@ -49,41 +50,39 @@ impl<'a> System<'a> for InputSystem {
                     selected.remove(e);
                 }
 
-                selected.insert(entity, Selected);
+                selected
+                    .insert(entity, Selected)
+                    .expect("failed to mark entity as selected");
             }
             Some(InputEvent::Up) => {
-                if slot.y > 0 {
-                    if let Some(e) = board.board[slot.y - 1][slot.x] {
-                        highlighted.insert(e, Highlighted);
-                    }
-
+                if let Some(e) = game_state.board.entity_above(slot.x, slot.y) {
+                    highlighted
+                        .insert(e, Highlighted)
+                        .expect("failed to mark entity as highlighted");
                     highlighted.remove(entity);
                 }
             }
             Some(InputEvent::Down) => {
-                if slot.y < 6 {
-                    if let Some(e) = board.board[slot.y + 1][slot.x] {
-                        highlighted.insert(e, Highlighted);
-                    }
-
+                if let Some(e) = game_state.board.entity_below(slot.x, slot.y) {
+                    highlighted
+                        .insert(e, Highlighted)
+                        .expect("failed to mark entity as highlighted");
                     highlighted.remove(entity);
                 }
             }
             Some(InputEvent::Left) => {
-                if slot.x > 0 {
-                    if let Some(e) = board.board[slot.y][slot.x - 1] {
-                        highlighted.insert(e, Highlighted);
-                    }
-
+                if let Some(e) = game_state.board.entity_to_left(slot.x, slot.y) {
+                    highlighted
+                        .insert(e, Highlighted)
+                        .expect("failed to mark entity as highlighted");
                     highlighted.remove(entity);
                 }
             }
             Some(InputEvent::Right) => {
-                if slot.x < 6 {
-                    if let Some(e) = board.board[slot.y][slot.x + 1] {
-                        highlighted.insert(e, Highlighted);
-                    }
-
+                if let Some(e) = game_state.board.entity_to_right(slot.x, slot.y) {
+                    highlighted
+                        .insert(e, Highlighted)
+                        .expect("failed to mark entity as highlighted");
                     highlighted.remove(entity);
                 }
             }

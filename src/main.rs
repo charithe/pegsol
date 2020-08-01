@@ -1,4 +1,4 @@
-use crate::resources::{InputEvent, InputQueue};
+use crate::resources::{GameState, InputEvent, InputQueue};
 use ggez;
 use ggez::event::{KeyCode, KeyMods, MouseButton};
 use ggez::{conf, event, Context, GameResult};
@@ -6,6 +6,7 @@ use specs::{RunNow, World, WorldExt};
 use std::path;
 
 mod components;
+mod constants;
 mod entities;
 mod input_system;
 mod rendering_system;
@@ -14,9 +15,9 @@ mod resources;
 fn main() -> GameResult {
     let mut world = World::new();
     components::register_components(&mut world);
-    let board = entities::create_board(&mut world);
 
-    world.insert(board);
+    let board = entities::create_board(&mut world);
+    world.insert(GameState::new(board));
     world.insert(InputQueue::default());
 
     let context_builder = ggez::ContextBuilder::new("rust_pegsol", "pegsol")

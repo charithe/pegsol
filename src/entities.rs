@@ -1,25 +1,50 @@
 use crate::components::*;
+use crate::constants::{BOARD_LEN, LAYOUT};
 use specs::{world::Builder, world::Entity, World, WorldExt};
 
-const LAYOUT: [[char; 7]; 7] = [
-    ['.', '.', 'X', 'X', 'X', '.', '.'],
-    ['.', '.', 'X', 'X', 'X', '.', '.'],
-    ['X', 'X', 'X', 'X', 'X', 'X', 'X'],
-    ['X', 'X', 'X', 'O', 'X', 'X', 'X'],
-    ['X', 'X', 'X', 'X', 'X', 'X', 'X'],
-    ['.', '.', 'X', 'X', 'X', '.', '.'],
-    ['.', '.', 'X', 'X', 'X', '.', '.'],
-];
-
-pub struct Board {
-    pub board: [[Option<Entity>; 7]; 7],
-}
+pub struct Board([[Option<Entity>; BOARD_LEN]; BOARD_LEN]);
 
 impl Default for Board {
     fn default() -> Self {
-        Self {
-            board: [[None; 7]; 7],
+        Self([[None; BOARD_LEN]; BOARD_LEN])
+    }
+}
+
+impl Board {
+    pub fn add_entity(&mut self, x: usize, y: usize, entity: Entity) {
+        self.0[y][x] = Some(entity);
+    }
+
+    pub fn entity_above(&self, x: usize, y: usize) -> Option<Entity> {
+        if y == 0 {
+            return None;
         }
+
+        self.0[y - 1][x]
+    }
+
+    pub fn entity_below(&self, x: usize, y: usize) -> Option<Entity> {
+        if y == BOARD_LEN - 1 {
+            return None;
+        }
+
+        self.0[y + 1][x]
+    }
+
+    pub fn entity_to_left(&self, x: usize, y: usize) -> Option<Entity> {
+        if x == 0 {
+            return None;
+        }
+
+        self.0[y][x - 1]
+    }
+
+    pub fn entity_to_right(&self, x: usize, y: usize) -> Option<Entity> {
+        if x == BOARD_LEN - 1 {
+            return None;
+        }
+
+        self.0[y][x + 1]
     }
 }
 
@@ -31,11 +56,11 @@ pub fn create_board(world: &mut World) -> Board {
             match col {
                 'X' => {
                     let entity = create_occupied_slot(world, x, y);
-                    board.board[y][x] = Some(entity);
+                    board.add_entity(x, y, entity);
                 }
                 'O' => {
                     let entity = create_empty_slot(world, x, y);
-                    board.board[y][x] = Some(entity);
+                    board.add_entity(x, y, entity);
                 }
                 _ => (),
             }
