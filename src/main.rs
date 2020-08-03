@@ -8,6 +8,7 @@ use std::path;
 mod components;
 mod constants;
 mod entities;
+mod gameplay_system;
 mod input_system;
 mod rendering_system;
 mod resources;
@@ -38,6 +39,9 @@ impl event::EventHandler for PegSol {
     fn update(&mut self, _context: &mut Context) -> GameResult {
         let mut is = input_system::InputSystem;
         is.run_now(&self.world);
+
+        let mut gs = gameplay_system::GamePlaySystem;
+        gs.run_now(&self.world);
 
         Ok(())
     }

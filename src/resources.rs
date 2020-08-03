@@ -1,4 +1,5 @@
 use crate::entities::Board;
+use specs::Entity;
 use std::collections::VecDeque;
 
 #[derive(Debug)]
@@ -22,9 +23,15 @@ pub enum GameStatus {
     Completed(u8),
 }
 
+pub struct Move {
+    pub prev: Entity,
+    pub curr: Entity,
+}
+
 pub struct GameState {
     pub board: Board,
     pub status: GameStatus,
+    pub moves: VecDeque<Move>,
     pub move_count: u32,
 }
 
@@ -33,6 +40,7 @@ impl GameState {
         Self {
             board,
             status: GameStatus::OnGoing,
+            moves: VecDeque::new(),
             move_count: 0,
         }
     }

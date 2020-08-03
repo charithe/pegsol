@@ -1,22 +1,23 @@
 use crate::components::*;
 use crate::constants::TILE_SIZE;
 use crate::resources::*;
-use specs::{Entities, Join, ReadExpect, ReadStorage, System, Write, WriteStorage};
+use specs::{Entities, Join, ReadStorage, System, Write, WriteExpect, WriteStorage};
 
 pub struct InputSystem;
 
 impl<'a> System<'a> for InputSystem {
     type SystemData = (
         Entities<'a>,
-        ReadExpect<'a, GameState>,
-        Write<'a, InputQueue>,
         ReadStorage<'a, Slot>,
+        WriteExpect<'a, GameState>,
+        Write<'a, InputQueue>,
         WriteStorage<'a, Selected>,
         WriteStorage<'a, Highlighted>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (entities, game_state, mut input_queue, slots, mut selected, mut highlighted) = data;
+        let (entities, slots, mut game_state, mut input_queue, mut selected, mut highlighted) =
+            data;
 
         let (entity, slot, _is_highlighted) =
             (&*entities, &slots, &highlighted).join().nth(0).unwrap();
@@ -30,10 +31,11 @@ impl<'a> System<'a> for InputSystem {
 
                     if x >= sx && x <= sx + TILE_SIZE {
                         if y >= sy && y <= sy + TILE_SIZE {
-                            if let Some(en) =
+                            if let Some(prev) =
                                 (&*entities, &selected).join().map(|(en, _)| en).nth(0)
                             {
-                                selected.remove(en);
+                                game_state.moves.push_back(Move { prev, curr: e });
+                                selected.remove(prev);
                             }
 
                             selected
@@ -46,8 +48,9 @@ impl<'a> System<'a> for InputSystem {
                 }
             }
             Some(InputEvent::Enter) => {
-                if let Some(e) = (&*entities, &selected).join().map(|(e, _)| e).nth(0) {
-                    selected.remove(e);
+                if let Some(prev) = (&*entities, &selected).join().map(|(e, _)| e).nth(0) {
+                    game_state.moves.push_back(Move { prev, curr: entity });
+                    selected.remove(prev);
                 }
 
                 selected

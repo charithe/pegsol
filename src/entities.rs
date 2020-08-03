@@ -15,6 +15,14 @@ impl Board {
         self.0[y][x] = Some(entity);
     }
 
+    pub fn entity_at(&self, x: usize, y: usize) -> Option<Entity> {
+        if x >= BOARD_LEN || y >= BOARD_LEN {
+            return None;
+        }
+
+        self.0[y][x]
+    }
+
     pub fn entity_above(&self, x: usize, y: usize) -> Option<Entity> {
         if y == 0 {
             return None;
