@@ -1,4 +1,4 @@
-use crate::resources::{GameState, InputEvent, InputQueue};
+use crate::resources::{GameState, InputEvent, InputQueue, SpriteCache};
 use ggez;
 use ggez::event::{KeyCode, KeyMods, MouseButton};
 use ggez::{conf, event, Context, GameResult};
@@ -27,12 +27,16 @@ fn main() -> GameResult {
         .add_resource_path(path::PathBuf::from("./resources"));
 
     let (context, event_loop) = &mut context_builder.build()?;
-    let pegsol = &mut PegSol { world };
+    let pegsol = &mut PegSol {
+        world,
+        sprite_cache: None,
+    };
     event::run(context, event_loop, pegsol)
 }
 
 struct PegSol {
     world: World,
+    sprite_cache: Option<SpriteCache>,
 }
 
 impl event::EventHandler for PegSol {
@@ -47,7 +51,15 @@ impl event::EventHandler for PegSol {
     }
 
     fn draw(&mut self, context: &mut Context) -> GameResult {
-        let mut rs = rendering_system::RenderingSystem { context };
+        if self.sprite_cache.is_none() {
+            self.sprite_cache = Some(SpriteCache::new(context));
+        }
+
+        let sprite_cache = self.sprite_cache.as_ref().unwrap();
+        let mut rs = rendering_system::RenderingSystem {
+            context,
+            sprite_cache,
+        };
         rs.run_now(&self.world);
 
         Ok(())
@@ -55,7 +67,7 @@ impl event::EventHandler for PegSol {
 
     fn key_down_event(
         &mut self,
-        _context: &mut Context,
+        context: &mut Context,
         key_code: KeyCode,
         _key_mod: KeyMods,
         _repeat: bool,
@@ -66,6 +78,10 @@ impl event::EventHandler for PegSol {
             KeyCode::Left | KeyCode::A => Some(InputEvent::Left),
             KeyCode::Right | KeyCode::D => Some(InputEvent::Right),
             KeyCode::Return => Some(InputEvent::Enter),
+            KeyCode::Escape => {
+                context.continuing = false;
+                return;
+            }
             _ => None,
         };
 
