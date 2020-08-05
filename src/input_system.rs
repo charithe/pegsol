@@ -19,6 +19,10 @@ impl<'a> System<'a> for InputSystem {
         let (entities, slots, mut game_state, mut input_queue, mut selected, mut highlighted) =
             data;
 
+        if game_state.status == GameStatus::Completed {
+            return;
+        }
+
         let (entity, slot, _is_highlighted) =
             (&*entities, &slots, &highlighted).join().nth(0).unwrap();
 

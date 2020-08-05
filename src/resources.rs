@@ -20,10 +20,10 @@ pub struct InputQueue {
     pub events: VecDeque<InputEvent>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum GameStatus {
     OnGoing,
-    Completed(u8),
+    Completed,
 }
 
 pub struct Move {

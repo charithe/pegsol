@@ -1,6 +1,7 @@
 use crate::components::*;
+use crate::constants::BOARD_LEN;
 use crate::resources::*;
-use specs::{ReadStorage, System, WriteExpect, WriteStorage};
+use specs::{Join, ReadStorage, System, WriteExpect, WriteStorage};
 
 pub struct GamePlaySystem;
 
@@ -13,6 +14,7 @@ impl<'a> System<'a> for GamePlaySystem {
 
     fn run(&mut self, data: Self::SystemData) {
         let (slots, mut game_state, mut occupied) = data;
+
         if let Some(m) = game_state.moves.pop_front() {
             let prev_occupied = occupied.get(m.prev).is_some();
             let curr_unoccupied = occupied.get(m.curr).is_none();
@@ -42,5 +44,82 @@ impl<'a> System<'a> for GamePlaySystem {
                 }
             }
         }
+
+        if game_state.status == GameStatus::Completed {
+            return;
+        }
+
+        for (slot, ()) in (&slots, !&occupied).join() {
+            // check left
+            if slot.x > 1 {
+                let p1 = game_state
+                    .board
+                    .entity_to_left(slot.x, slot.y)
+                    .map(|e| occupied.get(e))
+                    .flatten();
+                let p2 = game_state
+                    .board
+                    .entity_to_left(slot.x - 1, slot.y)
+                    .map(|e| occupied.get(e))
+                    .flatten();
+                if p1.is_some() && p2.is_some() {
+                    return;
+                }
+            }
+
+            // check above
+            if slot.y > 1 {
+                let p1 = game_state
+                    .board
+                    .entity_above(slot.x, slot.y)
+                    .map(|e| occupied.get(e))
+                    .flatten();
+                let p2 = game_state
+                    .board
+                    .entity_above(slot.x, slot.y - 1)
+                    .map(|e| occupied.get(e))
+                    .flatten();
+                if p1.is_some() && p2.is_some() {
+                    return;
+                }
+            }
+
+            // check right
+            if slot.x < BOARD_LEN - 2 {
+                let p1 = game_state
+                    .board
+                    .entity_to_right(slot.x, slot.y)
+                    .map(|e| occupied.get(e))
+                    .flatten();
+                let p2 = game_state
+                    .board
+                    .entity_to_right(slot.x + 1, slot.y)
+                    .map(|e| occupied.get(e))
+                    .flatten();
+                if p1.is_some() && p2.is_some() {
+                    return;
+                }
+            }
+
+            // check below
+            if slot.y < BOARD_LEN - 2 {
+                let p1 = game_state
+                    .board
+                    .entity_below(slot.x, slot.y)
+                    .map(|e| occupied.get(e))
+                    .flatten();
+                let p2 = game_state
+                    .board
+                    .entity_below(slot.x, slot.y + 1)
+                    .map(|e| occupied.get(e))
+                    .flatten();
+                if p1.is_some() && p2.is_some() {
+                    return;
+                }
+            }
+        }
+
+        // There are no possible moves if we get here.
+        game_state.status = GameStatus::Completed;
     }
 }

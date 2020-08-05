@@ -8,7 +8,7 @@ pub struct Selected;
 #[storage(NullStorage)]
 pub struct Highlighted;
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Debug)]
 #[storage(NullStorage)]
 pub struct Occupied;
 

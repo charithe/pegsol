@@ -90,6 +90,11 @@ impl<'a> System<'a> for RenderingSystem<'a> {
         let moves = format!("Moves: {}", game_state.move_count);
         self.draw_text(&moves, 1.0, 30.0);
 
+        if game_state.status == GameStatus::Completed {
+            let game_over = "Game Over";
+            self.draw_text(&game_over, 1.0, 60.0);
+        }
+
         graphics::present(self.context).expect("present failed");
     }
 }
