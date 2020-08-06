@@ -1,4 +1,4 @@
-use crate::resources::{GameState, InputEvent, InputQueue, SpriteCache};
+use crate::resources::{GameState, InputEvent, InputQueue, ResourceCache};
 use ggez;
 use ggez::event::{KeyCode, KeyMods, MouseButton};
 use ggez::{conf, event, Context, GameResult};
@@ -23,20 +23,20 @@ fn main() -> GameResult {
 
     let context_builder = ggez::ContextBuilder::new("rust_pegsol", "pegsol")
         .window_setup(conf::WindowSetup::default().title("Peg Solitaire"))
-        .window_mode(conf::WindowMode::default().dimensions(900.0, 900.0))
+        .window_mode(conf::WindowMode::default().dimensions(700.0, 750.0))
         .add_resource_path(path::PathBuf::from("./resources"));
 
     let (context, event_loop) = &mut context_builder.build()?;
     let pegsol = &mut PegSol {
         world,
-        sprite_cache: None,
+        resource_cache: None,
     };
     event::run(context, event_loop, pegsol)
 }
 
 struct PegSol {
     world: World,
-    sprite_cache: Option<SpriteCache>,
+    resource_cache: Option<ResourceCache>,
 }
 
 impl event::EventHandler for PegSol {
@@ -51,14 +51,14 @@ impl event::EventHandler for PegSol {
     }
 
     fn draw(&mut self, context: &mut Context) -> GameResult {
-        if self.sprite_cache.is_none() {
-            self.sprite_cache = Some(SpriteCache::new(context));
+        if self.resource_cache.is_none() {
+            self.resource_cache = Some(ResourceCache::new(context));
         }
 
-        let sprite_cache = self.sprite_cache.as_ref().unwrap();
+        let resource_cache = self.resource_cache.as_ref().unwrap();
         let mut rs = rendering_system::RenderingSystem {
             context,
-            sprite_cache,
+            resource_cache,
         };
         rs.run_now(&self.world);
 

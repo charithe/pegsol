@@ -1,27 +1,64 @@
 use crate::components::*;
-use crate::constants::TILE_SIZE;
+use crate::constants::{PADDING, TILE_SIZE};
 use crate::resources::*;
-use ggez::graphics::{spritebatch::SpriteBatch, Color, DrawParam};
+use ggez::graphics::{
+    spritebatch::SpriteBatch, Align, Color, DrawParam, Scale, Text, TextFragment,
+};
 use ggez::{graphics, nalgebra as na, timer, Context};
 use itertools::Itertools;
 use specs::{Join, ReadExpect, ReadStorage, System};
 
 pub struct RenderingSystem<'a> {
     pub context: &'a mut Context,
-    pub sprite_cache: &'a SpriteCache,
+    pub resource_cache: &'a ResourceCache,
 }
 
 impl<'a> RenderingSystem<'a> {
-    fn draw_text(&mut self, text_string: &str, x: f32, y: f32) {
-        let text = graphics::Text::new(text_string);
-        let destination = na::Point2::new(x, y);
-        let color = Some(Color::new(0.0, 1.0, 0.0, 1.0));
-        let dimensions = na::Point2::new(0.0, 20.0);
+    fn draw_banner(&mut self, moves: u32, fps: f64, game_over: bool) {
+        let mut moves_txt = Text::new(
+            TextFragment::new(format!("Moves\n{:05}", moves))
+                .font(self.resource_cache.font())
+                .scale(Scale::uniform(24.0)),
+        );
 
-        graphics::queue_text(self.context, &text, dimensions, color);
+        graphics::queue_text(
+            self.context,
+            moves_txt.set_bounds([150.0, 30.0], Align::Center),
+            na::Point2::new(0.0, 0.0),
+            Some(Color::new(0.0, 1.0, 0.0, 1.0)),
+        );
+
+        if game_over {
+            let mut game_over_txt = Text::new(
+                TextFragment::new("GAME OVER")
+                    .font(self.resource_cache.font())
+                    .scale(Scale::uniform(36.0)),
+            );
+
+            graphics::queue_text(
+                self.context,
+                game_over_txt.set_bounds([400.0, 30.0], Align::Center),
+                na::Point2::new(150.0, 0.0),
+                Some(Color::new(1.0, 0.0, 0.0, 1.0)),
+            );
+        }
+
+        let mut fps_txt = Text::new(
+            TextFragment::new(format!("FPS\n{:03.0}", fps))
+                .font(self.resource_cache.font())
+                .scale(Scale::uniform(24.0)),
+        );
+
+        graphics::queue_text(
+            self.context,
+            fps_txt.set_bounds([150.0, 30.0], Align::Center),
+            na::Point2::new(550.0, 0.0),
+            Some(Color::new(0.0, 1.0, 0.0, 1.0)),
+        );
+
         graphics::draw_queued_text(
             self.context,
-            graphics::DrawParam::new().dest(destination),
+            graphics::DrawParam::new().dest(na::Point2::new(0.0, 690.0)),
             None,
             graphics::FilterMode::Linear,
         )
@@ -64,8 +101,8 @@ impl<'a> System<'a> for RenderingSystem<'a> {
                 _ => SpriteType::UnoccupiedNormal,
             };
 
-            let x = slot.x as f32 * TILE_SIZE;
-            let y = slot.y as f32 * TILE_SIZE;
+            let x = (slot.x as f32 * TILE_SIZE) + PADDING;
+            let y = (slot.y as f32 * TILE_SIZE) + PADDING;
             sprite_groups.push((sprite_type, DrawParam::new().dest(na::Point2::new(x, y))));
         }
 
@@ -74,7 +111,7 @@ impl<'a> System<'a> for RenderingSystem<'a> {
             .group_by(|(t, _)| t)
             .into_iter()
             .for_each(|(t, params)| {
-                let image = self.sprite_cache.get(*t);
+                let image = self.resource_cache.sprite(*t);
                 let mut sprite_batch = SpriteBatch::new(image);
                 params.for_each(|(_, p)| {
                     sprite_batch.add(*p);
@@ -84,16 +121,11 @@ impl<'a> System<'a> for RenderingSystem<'a> {
                     .expect("failed to render");
             });
 
-        let fps = format!("FPS: {:.0}", timer::fps(self.context));
-        self.draw_text(&fps, 1.0, 1.0);
-
-        let moves = format!("Moves: {}", game_state.move_count);
-        self.draw_text(&moves, 1.0, 30.0);
-
-        if game_state.status == GameStatus::Completed {
-            let game_over = "Game Over";
-            self.draw_text(&game_over, 1.0, 60.0);
-        }
+        self.draw_banner(
+            game_state.move_count,
+            timer::fps(self.context),
+            game_state.status == GameStatus::Completed,
+        );
 
         graphics::present(self.context).expect("present failed");
     }

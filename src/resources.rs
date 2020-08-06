@@ -1,5 +1,5 @@
 use crate::entities::Board;
-use ggez::graphics::Image;
+use ggez::graphics::{Font, Image};
 use ggez::Context;
 use specs::Entity;
 use std::collections::{HashMap, VecDeque};
@@ -77,11 +77,14 @@ impl SpriteType {
     }
 }
 
-pub struct SpriteCache(HashMap<SpriteType, Image>);
+pub struct ResourceCache {
+    sprites: HashMap<SpriteType, Image>,
+    font: Font,
+}
 
-impl SpriteCache {
+impl ResourceCache {
     pub fn new(context: &mut Context) -> Self {
-        let mut m: HashMap<SpriteType, Image> = HashMap::new();
+        let mut sprites: HashMap<SpriteType, Image> = HashMap::new();
         for s in [
             SpriteType::OccupiedSelectedHighlighted,
             SpriteType::OccupiedSelected,
@@ -95,16 +98,23 @@ impl SpriteCache {
         .iter()
         {
             let image_path = Path::new("/images").join(s.image_name());
-            m.insert(
+            sprites.insert(
                 *s,
                 Image::new(context, image_path).expect("unable to load image"),
             );
         }
 
-        Self(m)
+        let font =
+            Font::new(context, Path::new("/fonts/Roboto-Bold.ttf")).expect("unable to load font");
+
+        Self { sprites, font }
     }
 
-    pub fn get(&self, s: SpriteType) -> Image {
-        self.0.get(&s).unwrap().clone()
+    pub fn sprite(&self, s: SpriteType) -> Image {
+        self.sprites.get(&s).unwrap().clone()
+    }
+
+    pub fn font(&self) -> Font {
+        self.font.clone()
     }
 }
