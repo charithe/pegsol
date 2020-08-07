@@ -80,6 +80,7 @@ impl SpriteType {
 pub struct ResourceCache {
     sprites: HashMap<SpriteType, Image>,
     font: Font,
+    header: Image,
 }
 
 impl ResourceCache {
@@ -104,10 +105,17 @@ impl ResourceCache {
             );
         }
 
+        let header =
+            Image::new(context, Path::new("/images/header.png")).expect("unable to load header");
+
         let font =
             Font::new(context, Path::new("/fonts/Roboto-Bold.ttf")).expect("unable to load font");
 
-        Self { sprites, font }
+        Self {
+            sprites,
+            font,
+            header,
+        }
     }
 
     pub fn sprite(&self, s: SpriteType) -> Image {
@@ -116,5 +124,9 @@ impl ResourceCache {
 
     pub fn font(&self) -> Font {
         self.font.clone()
+    }
+
+    pub fn header(&self) -> Image {
+        self.header.clone()
     }
 }

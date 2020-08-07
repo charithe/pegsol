@@ -23,7 +23,7 @@ fn main() -> GameResult {
 
     let context_builder = ggez::ContextBuilder::new("rust_pegsol", "pegsol")
         .window_setup(conf::WindowSetup::default().title("Peg Solitaire"))
-        .window_mode(conf::WindowMode::default().dimensions(700.0, 750.0))
+        .window_mode(conf::WindowMode::default().dimensions(700.0, 800.0))
         .add_resource_path(path::PathBuf::from("./resources"));
 
     let (context, event_loop) = &mut context_builder.build()?;

@@ -1,5 +1,5 @@
 use crate::components::*;
-use crate::constants::{PADDING, TILE_SIZE};
+use crate::constants::{PADDING_LEFT, PADDING_TOP, TILE_SIZE};
 use crate::resources::*;
 use specs::{Entities, Join, ReadStorage, System, Write, WriteExpect, WriteStorage};
 
@@ -30,8 +30,8 @@ impl<'a> System<'a> for InputSystem {
         match event {
             Some(InputEvent::MouseClick { x, y }) => {
                 for (e, s) in (&*entities, &slots).join() {
-                    let sx = (s.x as f32 * TILE_SIZE) + PADDING;
-                    let sy = (s.y as f32 * TILE_SIZE) + PADDING;
+                    let sx = (s.x as f32 * TILE_SIZE) + PADDING_LEFT;
+                    let sy = (s.y as f32 * TILE_SIZE) + PADDING_TOP;
 
                     if x >= sx && x <= sx + TILE_SIZE {
                         if y >= sy && y <= sy + TILE_SIZE {
