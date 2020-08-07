@@ -1,3 +1,4 @@
+use crate::assets::*;
 use crate::components::*;
 use crate::constants::{PADDING_LEFT, PADDING_TOP, TILE_SIZE};
 use crate::resources::*;
@@ -6,25 +7,24 @@ use ggez::graphics::{
 };
 use ggez::{graphics, nalgebra as na, timer, Context};
 use itertools::Itertools;
-use specs::{Join, ReadExpect, ReadStorage, System};
+use specs::{Join, Read, ReadExpect, ReadStorage, System};
 
 pub struct RenderingSystem<'a> {
     pub context: &'a mut Context,
-    pub resource_cache: &'a ResourceCache,
 }
 
 impl<'a> RenderingSystem<'a> {
-    fn draw_banner(&mut self, moves: u32, fps: f64, game_over: bool) {
+    fn draw_banner(&mut self, asset_store: &AssetStore, moves: u32, fps: f64, game_over: bool) {
         graphics::draw(
             self.context,
-            &self.resource_cache.header(),
+            &asset_store.image(ImageType::Header),
             DrawParam::default().dest(na::Point2::new(0.0, 0.0)),
         )
         .expect("failed to render header");
 
         let mut moves_txt = Text::new(
             TextFragment::new(format!("Moves\n{:05}", moves))
-                .font(self.resource_cache.font())
+                .font(asset_store.font())
                 .scale(Scale::uniform(36.0)),
         );
 
@@ -38,7 +38,7 @@ impl<'a> RenderingSystem<'a> {
         if game_over {
             let mut game_over_txt = Text::new(
                 TextFragment::new("GAME OVER")
-                    .font(self.resource_cache.font())
+                    .font(asset_store.font())
                     .scale(Scale::uniform(48.0)),
             );
 
@@ -52,7 +52,7 @@ impl<'a> RenderingSystem<'a> {
 
         let mut fps_txt = Text::new(
             TextFragment::new(format!("FPS\n{:03.0}", fps))
-                .font(self.resource_cache.font())
+                .font(asset_store.font())
                 .scale(Scale::uniform(36.0)),
         );
 
@@ -80,14 +80,15 @@ impl<'a> System<'a> for RenderingSystem<'a> {
         ReadStorage<'a, Selected>,
         ReadStorage<'a, Highlighted>,
         ReadExpect<'a, GameState>,
+        Read<'a, AssetStore>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (slots, occupied, selected, highlighted, game_state) = data;
+        let (slots, occupied, selected, highlighted, game_state, asset_store) = data;
 
         graphics::clear(self.context, graphics::Color::new(0.0, 0.0, 0.0, 1.0));
 
-        let mut sprite_groups: Vec<(SpriteType, DrawParam)> = Vec::new();
+        let mut sprite_groups: Vec<(ImageType, DrawParam)> = Vec::new();
 
         for (slot, occ, sel, hi) in (
             &slots,
@@ -98,14 +99,14 @@ impl<'a> System<'a> for RenderingSystem<'a> {
             .join()
         {
             let sprite_type = match (occ, sel, hi) {
-                (Some(_), Some(_), Some(_)) => SpriteType::OccupiedSelectedHighlighted,
-                (Some(_), Some(_), None) => SpriteType::OccupiedSelected,
-                (Some(_), None, Some(_)) => SpriteType::OccupiedHighlighted,
-                (Some(_), None, None) => SpriteType::OccupiedNormal,
-                (None, Some(_), Some(_)) => SpriteType::UnoccupiedSelectedHighlighted,
-                (None, Some(_), None) => SpriteType::UnoccupiedSelected,
-                (None, None, Some(_)) => SpriteType::UnoccupiedHighlighted,
-                _ => SpriteType::UnoccupiedNormal,
+                (Some(_), Some(_), Some(_)) => ImageType::OccupiedSelectedHighlighted,
+                (Some(_), Some(_), None) => ImageType::OccupiedSelected,
+                (Some(_), None, Some(_)) => ImageType::OccupiedHighlighted,
+                (Some(_), None, None) => ImageType::OccupiedNormal,
+                (None, Some(_), Some(_)) => ImageType::UnoccupiedSelectedHighlighted,
+                (None, Some(_), None) => ImageType::UnoccupiedSelected,
+                (None, None, Some(_)) => ImageType::UnoccupiedHighlighted,
+                _ => ImageType::UnoccupiedNormal,
             };
 
             let x = (slot.x as f32 * TILE_SIZE) + PADDING_LEFT;
@@ -118,7 +119,7 @@ impl<'a> System<'a> for RenderingSystem<'a> {
             .group_by(|(t, _)| t)
             .into_iter()
             .for_each(|(t, params)| {
-                let image = self.resource_cache.sprite(*t);
+                let image = asset_store.image(*t);
                 let mut sprite_batch = SpriteBatch::new(image);
                 params.for_each(|(_, p)| {
                     sprite_batch.add(*p);
@@ -129,6 +130,7 @@ impl<'a> System<'a> for RenderingSystem<'a> {
             });
 
         self.draw_banner(
+            &asset_store,
             game_state.move_count,
             timer::fps(self.context),
             game_state.status == GameStatus::Completed,

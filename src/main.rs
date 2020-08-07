@@ -1,10 +1,12 @@
-use crate::resources::{GameState, InputEvent, InputQueue, ResourceCache};
+use crate::assets::AssetStore;
+use crate::resources::{GameEventQueue, GameState, InputEvent, InputQueue};
 use ggez;
 use ggez::event::{KeyCode, KeyMods, MouseButton};
 use ggez::{conf, event, Context, GameResult};
 use specs::{RunNow, World, WorldExt};
 use std::path;
 
+mod assets;
 mod components;
 mod constants;
 mod entities;
@@ -12,6 +14,7 @@ mod gameplay_system;
 mod input_system;
 mod rendering_system;
 mod resources;
+mod sound_system;
 
 fn main() -> GameResult {
     let mut world = World::new();
@@ -20,6 +23,8 @@ fn main() -> GameResult {
     let board = entities::create_board(&mut world);
     world.insert(GameState::new(board));
     world.insert(InputQueue::default());
+    world.insert(GameEventQueue::default());
+    world.insert(AssetStore::default());
 
     let context_builder = ggez::ContextBuilder::new("rust_pegsol", "pegsol")
         .window_setup(conf::WindowSetup::default().title("Peg Solitaire"))
@@ -27,16 +32,14 @@ fn main() -> GameResult {
         .add_resource_path(path::PathBuf::from("./resources"));
 
     let (context, event_loop) = &mut context_builder.build()?;
-    let pegsol = &mut PegSol {
-        world,
-        resource_cache: None,
-    };
+    assets::load_assets(&mut world, context);
+
+    let pegsol = &mut PegSol { world };
     event::run(context, event_loop, pegsol)
 }
 
 struct PegSol {
     world: World,
-    resource_cache: Option<ResourceCache>,
 }
 
 impl event::EventHandler for PegSol {
@@ -47,19 +50,14 @@ impl event::EventHandler for PegSol {
         let mut gs = gameplay_system::GamePlaySystem;
         gs.run_now(&self.world);
 
+        let mut ss = sound_system::SoundSystem;
+        ss.run_now(&self.world);
+
         Ok(())
     }
 
     fn draw(&mut self, context: &mut Context) -> GameResult {
-        if self.resource_cache.is_none() {
-            self.resource_cache = Some(ResourceCache::new(context));
-        }
-
-        let resource_cache = self.resource_cache.as_ref().unwrap();
-        let mut rs = rendering_system::RenderingSystem {
-            context,
-            resource_cache,
-        };
+        let mut rs = rendering_system::RenderingSystem { context };
         rs.run_now(&self.world);
 
         Ok(())

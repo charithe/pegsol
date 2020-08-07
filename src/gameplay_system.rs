@@ -1,7 +1,7 @@
 use crate::components::*;
 use crate::constants::BOARD_LEN;
 use crate::resources::*;
-use specs::{Join, ReadStorage, System, WriteExpect, WriteStorage};
+use specs::{Join, ReadStorage, System, Write, WriteExpect, WriteStorage};
 
 pub struct GamePlaySystem;
 
@@ -10,10 +10,11 @@ impl<'a> System<'a> for GamePlaySystem {
         ReadStorage<'a, Slot>,
         WriteExpect<'a, GameState>,
         WriteStorage<'a, Occupied>,
+        Write<'a, GameEventQueue>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (slots, mut game_state, mut occupied) = data;
+        let (slots, mut game_state, mut occupied, mut game_event_queue) = data;
 
         if let Some(m) = game_state.moves.pop_front() {
             let prev_occupied = occupied.get(m.prev).is_some();
@@ -40,8 +41,11 @@ impl<'a> System<'a> for GamePlaySystem {
                             .insert(m.curr, Occupied)
                             .expect("failed to mark entity as occupied");
                         game_state.move_count = game_state.move_count + 1;
+                        game_event_queue.events.push(GameEvent::CorrectMove);
                     }
                 }
+            } else {
+                game_event_queue.events.push(GameEvent::IncorrectMove);
             }
         }
 
@@ -121,5 +125,6 @@ impl<'a> System<'a> for GamePlaySystem {
 
         // There are no possible moves if we get here.
         game_state.status = GameStatus::Completed;
+        game_event_queue.events.push(GameEvent::GameOver);
     }
 }
