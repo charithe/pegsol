@@ -45,6 +45,7 @@ pub struct GameState {
     pub status: GameStatus,
     pub moves: VecDeque<Move>,
     pub move_count: u32,
+    pub peg_count: u32,
 }
 
 impl GameState {
@@ -54,6 +55,7 @@ impl GameState {
             status: GameStatus::OnGoing,
             moves: VecDeque::new(),
             move_count: 0,
+            peg_count: 32,
         }
     }
 }

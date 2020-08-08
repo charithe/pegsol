@@ -41,8 +41,11 @@ impl<'a> System<'a> for GamePlaySystem {
                             .insert(m.curr, Occupied)
                             .expect("failed to mark entity as occupied");
                         game_state.move_count = game_state.move_count + 1;
+                        game_state.peg_count = game_state.peg_count - 1;
                         game_event_queue.events.push(GameEvent::CorrectMove);
                     }
+                } else {
+                    game_event_queue.events.push(GameEvent::IncorrectMove);
                 }
             } else {
                 game_event_queue.events.push(GameEvent::IncorrectMove);

@@ -14,7 +14,7 @@ pub struct RenderingSystem<'a> {
 }
 
 impl<'a> RenderingSystem<'a> {
-    fn draw_banner(&mut self, asset_store: &AssetStore, moves: u32, fps: f64, game_over: bool) {
+    fn draw_banner(&mut self, asset_store: &AssetStore, moves: u32, pegs: u32, game_over: bool) {
         graphics::draw(
             self.context,
             &asset_store.image(ImageType::Header),
@@ -50,15 +50,15 @@ impl<'a> RenderingSystem<'a> {
             );
         }
 
-        let mut fps_txt = Text::new(
-            TextFragment::new(format!("FPS\n{:03.0}", fps))
+        let mut pegs_txt = Text::new(
+            TextFragment::new(format!("Pegs\n{:04}", pegs))
                 .font(asset_store.font())
                 .scale(Scale::uniform(36.0)),
         );
 
         graphics::queue_text(
             self.context,
-            fps_txt.set_bounds([150.0, 100.0], Align::Center),
+            pegs_txt.set_bounds([150.0, 100.0], Align::Center),
             na::Point2::new(550.0, 20.0),
             Some(Color::new(1.0, 1.0, 1.0, 1.0)),
         );
@@ -66,6 +66,26 @@ impl<'a> RenderingSystem<'a> {
         graphics::draw_queued_text(
             self.context,
             graphics::DrawParam::new().dest(na::Point2::new(0.0, 0.0)),
+            None,
+            graphics::FilterMode::Linear,
+        )
+        .expect("expected drawing queued text");
+    }
+
+    fn draw_fps(&mut self, fps: f64) {
+        let mut fps_txt =
+            Text::new(TextFragment::new(format!("FPS: {:.0}", fps)).scale(Scale::uniform(14.0)));
+
+        graphics::queue_text(
+            self.context,
+            fps_txt.set_bounds([100.0, 40.0], Align::Right),
+            na::Point2::new(0.0, 0.0),
+            Some(Color::new(0.0, 1.0, 0.0, 1.0)),
+        );
+
+        graphics::draw_queued_text(
+            self.context,
+            graphics::DrawParam::new().dest(na::Point2::new(580.0, 780.0)),
             None,
             graphics::FilterMode::Linear,
         )
@@ -132,9 +152,11 @@ impl<'a> System<'a> for RenderingSystem<'a> {
         self.draw_banner(
             &asset_store,
             game_state.move_count,
-            timer::fps(self.context),
+            game_state.peg_count,
             game_state.status == GameStatus::Completed,
         );
+
+        self.draw_fps(timer::fps(self.context));
 
         graphics::present(self.context).expect("present failed");
     }
