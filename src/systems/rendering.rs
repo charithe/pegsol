@@ -1,4 +1,3 @@
-use crate::assets::*;
 use crate::components::*;
 use crate::constants::{PADDING_LEFT, PADDING_TOP, TILE_SIZE};
 use crate::resources::*;
@@ -14,7 +13,7 @@ pub struct RenderingSystem<'a> {
 }
 
 impl<'a> RenderingSystem<'a> {
-    fn draw_banner(&mut self, asset_store: &AssetStore, moves: u32, pegs: u32, game_over: bool) {
+    fn draw_banner(&mut self, asset_store: &AssetStore, moves: u8, pegs: u8, game_over: bool) {
         graphics::draw(
             self.context,
             &asset_store.image(ImageType::Header),

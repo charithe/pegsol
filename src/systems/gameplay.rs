@@ -1,7 +1,7 @@
 use crate::components::*;
 use crate::constants::BOARD_LEN;
 use crate::resources::*;
-use specs::{Join, ReadStorage, System, Write, WriteExpect, WriteStorage};
+use specs::{Join, ReadStorage, System, WriteExpect, WriteStorage};
 
 pub struct GamePlaySystem;
 
@@ -10,13 +10,14 @@ impl<'a> System<'a> for GamePlaySystem {
         ReadStorage<'a, Slot>,
         WriteExpect<'a, GameState>,
         WriteStorage<'a, Occupied>,
-        Write<'a, GameEventQueue>,
+        WriteExpect<'a, GameEventQueue>,
+        WriteExpect<'a, MoveQueue>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (slots, mut game_state, mut occupied, mut game_event_queue) = data;
+        let (slots, mut game_state, mut occupied, mut game_event_queue, mut move_queue) = data;
 
-        if let Some(m) = game_state.moves.pop_front() {
+        if let Some(m) = move_queue.dequeue() {
             let prev_occupied = occupied.get(m.prev).is_some();
             let curr_unoccupied = occupied.get(m.curr).is_none();
             if prev_occupied && curr_unoccupied {
@@ -42,13 +43,13 @@ impl<'a> System<'a> for GamePlaySystem {
                             .expect("failed to mark entity as occupied");
                         game_state.move_count = game_state.move_count + 1;
                         game_state.peg_count = game_state.peg_count - 1;
-                        game_event_queue.events.push(GameEvent::CorrectMove);
+                        game_event_queue.enqueue(GameEvent::CorrectMove);
                     }
                 } else {
-                    game_event_queue.events.push(GameEvent::IncorrectMove);
+                    game_event_queue.enqueue(GameEvent::IncorrectMove);
                 }
             } else {
-                game_event_queue.events.push(GameEvent::IncorrectMove);
+                game_event_queue.enqueue(GameEvent::IncorrectMove);
             }
         }
 
@@ -128,6 +129,6 @@ impl<'a> System<'a> for GamePlaySystem {
 
         // There are no possible moves if we get here.
         game_state.status = GameStatus::Completed;
-        game_event_queue.events.push(GameEvent::GameOver);
+        game_event_queue.enqueue(GameEvent::GameOver);
     }
 }
